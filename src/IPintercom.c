@@ -9,6 +9,7 @@
 #define ERROR   -1
 
 int Sock;
+int ButtonFd;
 
 /* Check if IPinterCom is already running: /var/run/IPinterCom.pid */
 int pid_file_check_not_exist()
@@ -242,35 +243,37 @@ void event_loop()
      *  calculate the max_fd for select.
      */
 
-    max_fd = msock;
+	max_fd = Sock > ButtonFd ? Sock, buttonfd;
 
 	for (;;) {
-        FD_ZERO(&readfds);
-        FD_SET(Sock, &readfds);
+		FD_ZERO(&readfds);
+		FD_SET(Sock, &readfds);
 
-        retval = have_input(max_fd, &readfds);
+		retval = have_input(max_fd, &readfds);
 
-        if (retval != GOOD) {
-            continue;        /* interrupted */
-        }
+		if (retval != GOOD) {
+			continue;        /* interrupted */
+		}
 
-        if (FD_ISSET(Sock,&readfds)){
+		if (FD_ISSET(Sock,&readfds)){
+			clilen = sizeof(cliaddr);
+			clientfd = accept(msock,(struct sockaddr *)&cliaddr,&clilen);
 
-	    clilen = sizeof(cliaddr);
-            clientfd = accept(msock,(struct sockaddr *)&cliaddr,&clilen);
-
-            max_fd = (max_fd > clientfd) ? max_fd : clientfd;
-            FD_SET(clientfd, &readfds);
+			max_fd = (max_fd > clientfd) ? max_fd : clientfd;
+			FD_SET(clientfd, &readfds);
 		}
 
 		if (FD_ISSET(clientfd,&readfds)){
 			process_ctl_msg(clientfd,AF_INET,cliaddr.sin_addr);
 			FD_CLR(clientfd, &readfds);
 			clientfd = 0;
-			max_fd = msock;
+			max_fd = sock;
 		}
-    }
 
+        if (FD_ISSET(ButtonFd, &readfds)){
+            process_button_event();
+        }
+    }
 }
 #else
 void event_loop()
@@ -302,13 +305,35 @@ void event_loop()
             process_ctl_msg(msock,AF_INET,sin._addr);
         }
     }
-
 }
 #endif
 
-int aud_dev_setup()
+static void initial_setup()
 {
-	return SUCCESS;
+    LMLOG(LINF,"Meshcom-d %s compiled for Linux\n", MESHCOM_VERSION);
+    uint32_t iseed = 0;
+
+#if UINTPTR_MAX == 0xffffffff
+    LMLOG(LDBG_1,"x32 system");
+#elif UINTPTR_MAX == 0xffffffffffffffff
+    LMLOG(LDBG_1,"x64 system");
+#else
+    LMLOG(LERR,"Unknow system. Please contact the Meshcom team providing your hardware");
+#endif
+
+    if (check_capabilities() != GOOD){
+        exit(EXIT_SUCCESS);
+    }
+
+    if(pid_file_check_not_exist() == BAD){
+        exit(EXIT_SUCCESS);
+    }
+    pid_file_create();
+
+    /* Initialize the random number generator  */
+    iseed = (unsigned int) time(NULL);
+    srandom(iseed);
+    setup_signal_handlers();
 }
 
 int main()
@@ -345,12 +370,10 @@ int main()
 	if (morehelp) {
 		help();
 
-        return 0;
+        return SUCCESS;
     }
 
 	initial_setup();
-
-    //handle_command_line(argc, argv);
 
     /* see if we need to daemonize, and if so, do it */
     demonize_start();
@@ -358,17 +381,30 @@ int main()
     /* create socket master, timer wheel, initialize interfaces */
     msock = sock_init();
     if(msock <= 0){
-        LMLOG(LERR,"Error sock...");
-        return error;
+        LMLOG(LERR,"%s: Error sock...", __FUNCTION__);
+        return ERROR;
     }
 
-    dev_init();
+    if(SERVER == 0){
+        ret = button_setup();
+        if(ret != SUCCESS){
+            LMLOG(LERR, "%s: Button device setup failed!", __FUNCTION__);
+            goto exit;
+        }
+    }
 
-    LMLOG(LINF,"\n\n MeshCom (%s): 'meshcom-d' started... \n\n",MESHCOM_VERSION);
+    ret = aud_dev_setup();
+    if(ret != SUCCESS){
+        LMLOG(LERR, "%s: Audio device setup failed!", __FUNCTION__);
+        goto exit;
+    }
+
+    LMLOG(LINF,"\n\n IPinterCom (%s): 'IPinterCom-d' started... \n\n",MESHCOM_VERSION);
 
     /* EVENT LOOP */
     event_loop();
 
+exit:
     /* event_loop returned: bad! */
     LMLOG(LINF, "Exiting...");
     exit_cleanup();
