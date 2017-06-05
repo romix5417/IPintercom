@@ -1,22 +1,23 @@
 #include<audio/aud.h>
 
-static int hisa_card_detect(AudSndCard *card)
+static void hisa_card_detect(AudSndCard *card)
 {
     return;
 }
 
-static int hisa_card_init(AudSndCard *card)
+static void hisa_card_init(AudSndCard *card)
 {
     return;
 }
 
 static void hisa_card_create_reader(AudSndCard *card)
 {
-
+    return;
 }
 
 static void hisa_card_create_writer(AudSndCard *card)
 {
+
     return;
 }
 

@@ -36,4 +36,9 @@ typedef struct Recorder{
     int        sample;
 }Recorder;
 
+void snd_record_start(void);
+void snd_record_stop(void);
+void recorder_setup(void);
+
+
 #endif

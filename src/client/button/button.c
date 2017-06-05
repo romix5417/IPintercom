@@ -5,37 +5,16 @@
 #define DOWN      1
 #define RELEASE   0
 
-Recorder *recorder = NULL;
+extern recorder;
 
-int calls_status()
+int calls_status(void)
 {
-
+    return GOOD;
 }
 
-int terminal_calls()
+int terminal_calls(void)
 {
-
-}
-
-void snd_record_stop()
-{
-
-}
-
-void snd_record_start()
-{
-    AudSndCard *card;
-    Reader *reader;
-
-    card = recorder->sndCard;
-    reader = card->reader;
-
-    reader->snd_read(card, recorder->aud_raw_fp,recorder->sample);
-}
-
-int recorder_setup()
-{
-
+    return GOOD;
 }
 
 int process_button_event(int event)
@@ -57,6 +36,11 @@ int process_button_event(int event)
         snd_record_stop();
         usleep(1000);
         snd_encode_start(recorder->aud_raw_fp, recorder->aud_encode_fp);
-        snd_ftp_send();
+        ret = snd_tftp_send(recorder->aud_encode_fp);
     }
+}
+
+int button_setup(void)
+{
+    return GOOD;
 }

@@ -1,5 +1,26 @@
 #include <stdio.h>
-#include <lmlog.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/prctl.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <stdlib.h>
+#include <sys/select.h>
+#include <string.h>
+#include <errno.h>
+#include <syslog.h>
+#include <inttypes.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <getopt.h>
+
+#include <linux/capability.h>
+
+#include "log/lmlog.h"
+#include "client/button.h"
 
 #define IPinterCom_VER "v0.1"
 
@@ -8,8 +29,13 @@
 #define SUCCESS  0
 #define ERROR   -1
 
+#define IPINTERCOM_PORT 1780
+
 int Sock;
 int ButtonFd;
+
+extern int capset(cap_user_header_t header, cap_user_data_t data);
+extern int capget(cap_user_header_t header, const cap_user_data_t data);
 
 /* Check if IPinterCom is already running: /var/run/IPinterCom.pid */
 int pid_file_check_not_exist()
@@ -53,12 +79,12 @@ int pid_file_create()
 
 struct option long_option[] =
 {
-    {"help",    0, NULL, 'h'},
-    {"num",     1, NULL, 'n'},
-    {"debug",   1, NULL, 'd'},
-	{"server"   1, NULL, 's'},
-    {"transport 1, NULL, 't'},
-    {"port"     1, NULL, 'p'},
+    {"help",      0, NULL, 'h'},
+    {"num",       1, NULL, 'n'},
+    {"debug",     1, NULL, 'd'},
+	{"server",    1, NULL, 's'},
+    {"transport", 1, NULL, 't'},
+    {"port",      1, NULL, 'p'},
     {NULL, 0, NULL, 0},
 };
 
@@ -157,7 +183,7 @@ int sock_init()
 
     bzero(&servaddr,sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(MESHCOM_PORT);
+    servaddr.sin_port = htons(IPINTERCOM_PORT);
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 
@@ -189,7 +215,7 @@ int sock_init()
 
     bzero(&servaddr,sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(MESHCOM_PORT);
+    servaddr.sin_port = htons(IPINTERCOM_PORT);
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if(bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
@@ -208,9 +234,9 @@ int sock_init()
  */
 int have_input(int max_fd, fd_set *readfds)
 {
-    struct timeval tv;
-    tv.tv_sec  = 0;
-    tv.tv_usec = 1000000; //DEFAULT_SELECT_TIMEOUT;
+    //struct timeval tv;
+    //tv.tv_sec  = 0;
+    //tv.tv_usec = 1000000; //DEFAULT_SELECT_TIMEOUT;
 
     while (1)
     {
@@ -243,7 +269,7 @@ void event_loop()
      *  calculate the max_fd for select.
      */
 
-	max_fd = Sock > ButtonFd ? Sock, buttonfd;
+	max_fd = Sock > ButtonFd ? Sock, Buttonfd;
 
 	for (;;) {
 		FD_ZERO(&readfds);
@@ -267,7 +293,7 @@ void event_loop()
 			process_ctl_msg(clientfd,AF_INET,cliaddr.sin_addr);
 			FD_CLR(clientfd, &readfds);
 			clientfd = 0;
-			max_fd = sock;
+			max_fd = Sock;
 		}
 
         if (FD_ISSET(ButtonFd, &readfds)){
@@ -287,7 +313,7 @@ void event_loop()
      *  calculate the max_fd for select.
      */
 
-    max_fd = msock;
+    max_fd = Sock > ButtonFd ? Sock, Buttonfd;
 
     for (;;) {
         FD_ZERO(&readfds);
@@ -302,7 +328,11 @@ void event_loop()
         if (FD_ISSET(msock,&readfds)){
             printf("Received master message");
             LMLOG(LINF,"Received master message");
-            process_ctl_msg(msock,AF_INET,sin._addr);
+            process_ctl_msg(Sock,AF_INET,sin._addr);
+        }
+
+        if (FD_ISSET(ButtonFd, &readfds)){
+            process_button_event();
         }
     }
 }
@@ -310,7 +340,7 @@ void event_loop()
 
 static void initial_setup()
 {
-    LMLOG(LINF,"Meshcom-d %s compiled for Linux\n", MESHCOM_VERSION);
+    LMLOG(LINF,"IPinterCom-d %s compiled for Linux\n", MESHCOM_VERSION);
     uint32_t iseed = 0;
 
 #if UINTPTR_MAX == 0xffffffff
@@ -379,8 +409,8 @@ int main()
     demonize_start();
 
     /* create socket master, timer wheel, initialize interfaces */
-    msock = sock_init();
-    if(msock <= 0){
+    Sock = sock_init();
+    if(Sock <= 0){
         LMLOG(LERR,"%s: Error sock...", __FUNCTION__);
         return ERROR;
     }
@@ -402,8 +432,6 @@ int main()
     LMLOG(LINF,"\n\n IPinterCom (%s): 'IPinterCom-d' started... \n\n",MESHCOM_VERSION);
 
     /* EVENT LOOP */
-    event_loop();
-
 exit:
     /* event_loop returned: bad! */
     LMLOG(LINF, "Exiting...");

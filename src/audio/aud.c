@@ -4,6 +4,8 @@
 
 AudSndCard *AudCard = NULL;
 
+Recorder *recorder = NULL;
+
 #ifdef __HISA_ENABLE__
 extern hisa_card_desc;
 #endif
@@ -13,6 +15,38 @@ SndCardDesc *snd_card_descs[] = {
     &hisa_card_desc,
 #endif
 };
+
+void snd_record_stop(void)
+{
+    return;
+}
+
+void snd_record_start(void)
+{
+    AudSndCard *card;
+    Reader *reader;
+
+    card = recorder->sndCard;
+    reader = card->reader;
+
+    reader->snd_read(card, recorder->aud_raw_fp,recorder->sample);
+}
+
+int recorder_setup(void)
+{
+    return GOOD;
+}
+
+int snd_play_start(FILE *aud_raw_fp, )
+{
+    AudSndCard *card;
+    Writer *writer;
+
+    card = recorder->sndCard;
+    writer = card->writer;
+
+    writer->snd_write(card, aud_raw_fp, recorder->sample);
+}
 
 int card_detect(SndCardDesc *desc)
 {
@@ -53,6 +87,3 @@ int aud_dev_setup()
 
     return ERROR;
 }
-
-
-
