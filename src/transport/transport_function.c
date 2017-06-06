@@ -1,10 +1,11 @@
+#include "transport/transport_function.h"
 
-int snd_ftp_put()
+int snd_ftp_put(char *name)
 {
     return;
 }
 
-int snd_tftp_get()
+int snd_ftp_get(char *name)
 {
     return;
 }

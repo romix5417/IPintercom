@@ -1,5 +1,16 @@
-#include <socket/souckets-util.h>
-#include <log/lmlog.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "socket/sockets-util.h"
+#include "log/lmlog.h"
+#include "client/client_function.h"
+#include "transport/transport_function.h"
+#include "defs.h"
+#include "audio/aud.h"
+
+
+#define PUT_CMD  1
+#define DAIL_CMD 2
 
 typedef struct IPinterCom_control_hdr{
     uint8_t src;
@@ -10,17 +21,24 @@ typedef struct IPinterCom_control_hdr{
     char filename[16];
 }IPinterCom_control_hdr;
 
-int process_cmd_msg(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remote_port)
+int check_file_exist(char *name)
 {
-    char *name, *decode_file_name;
+    return GOOD;
+}
+
+int process_put_cmd(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remote_port)
+{
+    char *name;
+    char decode_file_name[32];
     FILE *aud_encode_fp, *aud_raw_fp;
-    int status = 0;
+    int status = 0; 
+    int ret = 0;
 
-    name = ((IPinterCom_control_hdr *)packet)->filename;
+    name = (char *)(((IPinterCom_control_hdr *)packet)->filename);
 
-    snd_tftp_get(name);
+    snd_ftp_get(name);
     ret = check_file_exist(name);
-    if(ret!=Good){
+    if(ret!=GOOD){
         LMLOG(LERR, "%s:The %s file not exist!", __FUNCTION__, name);
 
         return ret;
@@ -28,7 +46,7 @@ int process_cmd_msg(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remot
 
     sprintf(decode_file_name, "raw_%s", name);
 
-    aud_encode_fp = fopen(name, 'r');
+    aud_encode_fp = fopen((const char *)name, 'r');
     if(aud_encode_fp == NULL){
         LMLOG(LERR, "%s:The %s file not exist!", __FUNCTION__, name);
 
@@ -53,21 +71,16 @@ int process_cmd_msg(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remot
         return BAD;
     }
 
-    snd_start_play
+    snd_start_play(aud_raw_fp);
 
-    reader->snd_read(card, recorder->aud_raw_fp,recorder->sample);
-
-    return Good;
+    return GOOD;
 }
 
 /*
  *  Process a IPinterCom protocol message sitting on
  *  socket s with address family afi
  */
-int process_ctl_msg(
-        int sock,
-        int afi,
-	struct in_addr client_ip)
+int process_ctl_msg(int sock, int afi, struct in_addr client_ip)
 {
     uint8_t     packet[MAX_IP_PACKET];
     uint16_t    remote_port;
@@ -80,16 +93,18 @@ int process_ctl_msg(
     dest_ip.addr.v4.s_addr = client_ip.s_addr;
     LMLOG(LINF, "Received a IPinterCom control message,the dest_ip:0x%x,remote_port:%d",dest_ip.addr.v4.s_addr,remote_port);
 
-    switch (((IPinterCom_control_hdr_t *) packet)->cmd) {
-        case MESHCOM_CTL_CMD:    //Got Cmd Setting Reply
+    switch (((IPinterCom_control_hdr *) packet)->cmd) {
+        case PUT_CMD:    //Got Cmd Setting Reply
             LMLOG(LINF, "Received a IPinterCom Cmd message");
-            if (process_cmd_msg(sock,packet,dest_ip,remote_port) != GOOD){
+            if (process_put_cmd(sock,packet,dest_ip,remote_port) != GOOD){
                 return (BAD);
             }
             break;
+        case DAIL_CMD:
+            break;
         default:
             LMLOG(LINF, "Unidentified type control message received");
-            return (Error);
+            return (ERROR);
     }
 
     LMLOG(LINF, "Processing Completed to IPinterCom protocol control message");

@@ -23,7 +23,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "lmlog.h"
+
+#include "log/lmlog.h"
 #ifdef ANDROID
 #include <android/log.h>
 #endif

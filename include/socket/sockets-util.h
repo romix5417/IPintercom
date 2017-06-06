@@ -20,9 +20,10 @@
 #ifndef SOCKETS_UTIL_H_
 #define SOCKETS_UTIL_H_
 
-#include "meshcom_sockets.h"
 #include <string.h>
-#include "lmlog.h"
+
+#include "ipintercom_sockets.h"
+#include "log/lmlog.h"
 
 int open_ip_raw_socket(int afi);
 int open_udp_raw_socket(int afi);

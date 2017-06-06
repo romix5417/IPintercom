@@ -1,13 +1,16 @@
 #include <stdio.h>
-#include <lmlog.h>
-#include <audio/aud.h>
+
+#include "log/lmlog.h"
+#include "audio/aud.h"
+
+#define  __HISA_ENABLE__
 
 AudSndCard *AudCard = NULL;
 
 Recorder *recorder = NULL;
 
 #ifdef __HISA_ENABLE__
-extern hisa_card_desc;
+extern SndCardDesc hisa_card_desc;
 #endif
 
 SndCardDesc *snd_card_descs[] = {
@@ -15,6 +18,11 @@ SndCardDesc *snd_card_descs[] = {
     &hisa_card_desc,
 #endif
 };
+
+void snd_start_play(FILE *aud_raw_fp)
+{
+    return;
+}
 
 void snd_record_stop(void)
 {
@@ -37,7 +45,7 @@ int recorder_setup(void)
     return GOOD;
 }
 
-int snd_play_start(FILE *aud_raw_fp, )
+int snd_play_start(FILE *aud_raw_fp )
 {
     AudSndCard *card;
     Writer *writer;
@@ -54,7 +62,7 @@ int card_detect(SndCardDesc *desc)
         (desc->detect)(AudCard);
 
     if(AudCard != NULL)
-        return SUCCESS;
+        return GOOD;
     else
         return ERROR;
 }
@@ -65,11 +73,11 @@ void snd_card_register(SndCardDesc *desc)
 
     ret = card_detect(desc);
     if(ret < 0){
-        return NULL;
+        return;
     }
 
     (desc->init)(AudCard);
-    return AudCard;
+    return;
 }
 
 int aud_dev_setup()
@@ -80,10 +88,10 @@ int aud_dev_setup()
     for(i=0; snd_card_descs[i] != NULL; i++){
         snd_card_register(snd_card_descs[i]);
         if(AudCard != NULL)
-            return SUCCESS;
+            return GOOD;
     }
 
-    LMLOG(LOG_ERR,"%s:sound card register failed!\r\n", __FUNCTION__);
+    LMLOG(LERR,"%s:sound card register failed!\r\n", __FUNCTION__);
 
     return ERROR;
 }

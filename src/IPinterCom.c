@@ -16,11 +16,13 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <getopt.h>
+#include <stdlib.h>
 
 #include <linux/capability.h>
 
 #include "log/lmlog.h"
 #include "client/button.h"
+#include "client/client_function.h"
 
 #define IPinterCom_VER "v0.1"
 
@@ -31,11 +33,49 @@
 
 #define IPINTERCOM_PORT 1780
 
+int debug_level = 5;
+int daemonize = 0;
+
 int Sock;
 int ButtonFd;
 
+#define DEFAULT_PORT IPINTERCOM_PORT
+
+int PORT = DEFAULT_PORT;
+int SERVER = 0;
+char TRANSPORT_MODE[8] = "tcp";
+int DEV_NUM = 0;
+
+pid_t pid   = 0;
+pid_t sid   = 0;
+
+
 extern int capset(cap_user_header_t header, cap_user_data_t data);
 extern int capget(cap_user_header_t header, const cap_user_data_t data);
+
+static void demonize_start()
+{
+    if (daemonize) {
+        LMLOG(LDBG_1, "Starting the daemonizing process");
+        if ((pid = fork()) < 0) {
+            exit_cleanup();
+        }
+        umask(0);
+        if (pid > 0){
+            exit(EXIT_SUCCESS);
+        }
+        if ((sid = setsid()) < 0){
+            exit_cleanup();
+        }
+        if ((chdir("/")) < 0){
+            exit_cleanup();
+        }
+        close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+    }
+}
+
 
 /* Check if IPinterCom is already running: /var/run/IPinterCom.pid */
 int pid_file_check_not_exist()
@@ -190,7 +230,7 @@ int sock_init()
     if(bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
     {
         perror("Bind() error.");
-	    return error;
+	    return ERROR;
     }
 
     if(listen(sockfd, backlog) == -1)
@@ -263,13 +303,13 @@ void event_loop()
     int    retval;
     socklen_t clilen;
     struct sockaddr_in cliaddr;
-    int i;
+    int event;
 
     /*
      *  calculate the max_fd for select.
      */
 
-	max_fd = Sock > ButtonFd ? Sock, Buttonfd;
+	max_fd = Sock > ButtonFd ? Sock:ButtonFd;
 
 	for (;;) {
 		FD_ZERO(&readfds);
@@ -283,7 +323,7 @@ void event_loop()
 
 		if (FD_ISSET(Sock,&readfds)){
 			clilen = sizeof(cliaddr);
-			clientfd = accept(msock,(struct sockaddr *)&cliaddr,&clilen);
+			clientfd = accept(Sock,(struct sockaddr *)&cliaddr,&clilen);
 
 			max_fd = (max_fd > clientfd) ? max_fd : clientfd;
 			FD_SET(clientfd, &readfds);
@@ -297,7 +337,7 @@ void event_loop()
 		}
 
         if (FD_ISSET(ButtonFd, &readfds)){
-            process_button_event();
+            process_button_event(event);
         }
     }
 }
@@ -313,11 +353,11 @@ void event_loop()
      *  calculate the max_fd for select.
      */
 
-    max_fd = Sock > ButtonFd ? Sock, Buttonfd;
+    max_fd = Sock > ButtonFd ? Sock:ButtonFd;
 
     for (;;) {
         FD_ZERO(&readfds);
-        FD_SET(msock, &readfds);
+        FD_SET(Sock, &readfds);
 
         retval = have_input(max_fd, &readfds);
 
@@ -325,7 +365,7 @@ void event_loop()
             continue;        /* interrupted */
         }
 
-        if (FD_ISSET(msock,&readfds)){
+        if (FD_ISSET(Sock,&readfds)){
             printf("Received master message");
             LMLOG(LINF,"Received master message");
             process_ctl_msg(Sock,AF_INET,sin._addr);
@@ -340,7 +380,7 @@ void event_loop()
 
 static void initial_setup()
 {
-    LMLOG(LINF,"IPinterCom-d %s compiled for Linux\n", MESHCOM_VERSION);
+    LMLOG(LINF,"IPinterCom-d %s compiled for Linux\n", IPinterCom_VER);
     uint32_t iseed = 0;
 
 #if UINTPTR_MAX == 0xffffffff
@@ -366,9 +406,10 @@ static void initial_setup()
     setup_signal_handlers();
 }
 
-int main()
+int main(int argc, char *argv[])
 {
 	int morehelp=0;
+    int ret;
 
 	while (1){
 		int c;
@@ -390,7 +431,7 @@ int main()
 		case 's':
 			SERVER = atoi(optarg);
 		case 't':
-			TRANSPORT_MODE = optarg;
+			memcpy(TRANSPORT_MODE,optarg,sizeof(optarg));
 		default:
 			printf("Tip #0 No have the argc please input --help or read Readme\r\n");
 			exit(0);
@@ -429,7 +470,7 @@ int main()
         goto exit;
     }
 
-    LMLOG(LINF,"\n\n IPinterCom (%s): 'IPinterCom-d' started... \n\n",MESHCOM_VERSION);
+    LMLOG(LINF,"\n\n IPinterCom (%s): 'IPinterCom-d' started... \n\n",IPinterCom_VER);
 
     /* EVENT LOOP */
 exit:

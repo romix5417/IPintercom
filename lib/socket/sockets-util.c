@@ -24,8 +24,7 @@
 #include <netdb.h>
 #include <net/if.h>
 #include <netinet/in_systm.h>
-#include <netinet/in.h>
-#include <netinet/ip6.h>
+//#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <stdio.h>
@@ -45,21 +44,18 @@
 #include <ctype.h>
 #include <errno.h>
 #include <ifaddrs.h>
-#include <linux/ipv6.h>
-#include <bits/in.h>
+//#include <bits/in.h>
 
-#include "sockets-util.h"
-#include "lmlog.h"
+#include "socket/sockets-util.h"
+#include "log/lmlog.h"
 
-struct in_pktinfo {
+/*struct in_pktinfo {
 	int		ipi_ifindex;
 	struct in_addr	ipi_spec_dst;
 	struct in_addr	ipi_addr;
-};
+};*/
 
-
-int
-open_ip_raw_socket(int afi)
+int open_ip_raw_socket(int afi)
 {
     int s;
     int on = 1;
@@ -83,9 +79,7 @@ open_ip_raw_socket(int afi)
 
 }
 
-
-int
-open_udp_raw_socket(int afi)
+int open_udp_raw_socket(int afi)
 {
     struct protoent *proto = NULL;
     int sock = ERR_SOCKET;
@@ -123,8 +117,7 @@ open_udp_raw_socket(int afi)
     return (sock);
 }
 
-int
-open_udp_datagram_socket(int afi)
+int open_udp_datagram_socket(int afi)
 {
     struct protoent *proto = NULL;
     int sock = ERR_SOCKET;

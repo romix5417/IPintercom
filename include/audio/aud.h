@@ -1,13 +1,26 @@
 #ifndef __AUD_H_
 #define __AUD_H_
 
+#include <pthread.h>
+#include <stdio.h>
+
+struct AudSndCard;
+
 typedef struct Reader{
-    int (*snd_read)(AudSndCard *card, FILE *fp, int sample);
+    int (*snd_read)(struct AudSndCard *card, FILE *fp, int sample);
 }Reader;
 
 typedef struct Writer{
-    int (*snd_write)(AudSndCard *card, FILE *fp, int sample);
+    int (*snd_write)(struct AudSndCard *card, FILE *fp, int sample);
 }Writer;
+
+typedef struct Recorder{
+    struct AudSndCard *sndCard;
+    pthread_t  *thread_id;
+    FILE       *aud_raw_fp;
+    FILE       *aud_encode_fp;
+    int        sample;
+}Recorder;
 
 typedef struct AudSndCard{
     char name[32];
@@ -19,7 +32,7 @@ typedef struct AudSndCard{
     Writer *writer;
 }AudSndCard;
 
-typedf struct SndCardDesc{
+typedef struct SndCardDesc{
     char driver_type[32];
     void (*detect)(AudSndCard *card);
     void (*init)(AudSndCard *card);
@@ -28,17 +41,11 @@ typedf struct SndCardDesc{
     void (*unload)(AudSndCard *card);
 }SndCardDesc;
 
-typedef struct Recorder{
-    AudSndCard *sndCard;
-    pthread_t  *thread_id;
-    FILE       *aud_raw_fp;
-    FILE       *aud_encode_fp;
-    int        sample;
-}Recorder;
 
 void snd_record_start(void);
 void snd_record_stop(void);
-void recorder_setup(void);
+void snd_start_play(FILE* aud_raw_fp);
+int recorder_setup(void);
 
 
 #endif

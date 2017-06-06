@@ -1,11 +1,13 @@
-#include <lmlog.h>
-#include <audio/aud.h>
+#include <pthread.h>
+#include <stdio.h>
 
-#define RUNNING 1
-#define DOWN      1
-#define RELEASE   0
+#include "log/lmlog.h"
+#include "audio/aud.h"
+#include "audio/encode.h"
+#include "defs.h"
 
-extern recorder;
+
+extern Recorder *recorder;
 
 int calls_status(void)
 {
@@ -19,7 +21,7 @@ int terminal_calls(void)
 
 int process_button_event(int event)
 {
-    int status;
+    int status,ret;
 
     //judgement is knob down or release button
     if(event == DOWN){
@@ -31,13 +33,19 @@ int process_button_event(int event)
 
         recorder_setup();
 
-        pthread_create(recorder->thread_id, snd_record_start, NULL);
+        pthread_create(recorder->thread_id, NULL, (void *)snd_record_start, NULL);
     }else{
         snd_record_stop();
         usleep(1000);
         snd_encode_start(recorder->aud_raw_fp, recorder->aud_encode_fp);
-        ret = snd_tftp_send(recorder->aud_encode_fp);
+        ret = snd_ftp_put(recorder->aud_encode_fp);
+        if(ret != GOOD){
+            LMLOG(LERR, "%s:send aud file failed ret = %d.", ret);
+            return ret;
+        }
     }
+
+    return ret;
 }
 
 int button_setup(void)

@@ -1,5 +1,8 @@
-#include <lmlog.h>
 #include <speex/speex.h>
+#include <stdio.h>
+
+#include "log/lmlog.h"
+#include "audio/encode.h"
 
 #define FRAME_SIZE 160
 int snd_encode_start(FILE *aud_raw_fp, FILE *aud_encode_fp)

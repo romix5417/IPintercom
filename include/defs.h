@@ -8,7 +8,7 @@
 #define ERR_SOCKET          -2
 
 
-#define error -1 
+#define ERROR -1 
 
 #define  RESERVED  0
 
@@ -16,5 +16,12 @@
 #define FALSE               0
 
 #define MAX_IP_PACKET 1500 
+
+#define RUNNING  0
+#define STOPPING -1
+
+#define DOWN      1
+#define RELEASE   0
+
 
 #endif
