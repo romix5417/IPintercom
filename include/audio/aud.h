@@ -34,7 +34,7 @@ typedef struct AudSndCard{
 
 typedef struct SndCardDesc{
     char driver_type[32];
-    void (*detect)(AudSndCard *card);
+    void (*detect)(AudSndCard **card);
     void (*init)(AudSndCard *card);
     void (*create_reader)(AudSndCard *card);
     void (*create_writer)(AudSndCard *card);

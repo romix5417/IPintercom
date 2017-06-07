@@ -31,9 +31,9 @@
 #define SUCCESS  0
 #define ERROR   -1
 
-#define IPINTERCOM_PORT 1780
+#define IPINTERCOM_PORT 9990
 
-int debug_level = 5;
+int debug_level = 1;
 int daemonize = 0;
 
 int Sock;
@@ -134,16 +134,20 @@ void signal_handler(int sig)
         case SIGHUP:
             /* TODO: SIGHUP should trigger reloading the configuration file */
             LMLOG(LDBG_1, "Received SIGHUP signal.");
+            exit_cleanup();
+            exit(EXIT_FAILURE);
             break;
         case SIGTERM:
             /* SIGTERM is the default signal sent by 'kill'. Exit cleanly */
             LMLOG(LDBG_1, "Received SIGTERM signal. Cleaning up...");
             exit_cleanup();
+            exit(EXIT_FAILURE);
             break;
         case SIGINT:
             /* SIGINT is sent by pressing Ctrl-C. Exit cleanly */
             LMLOG(LDBG_1, "Terminal interrupt. Cleaning up...");
             exit_cleanup();
+            exit(EXIT_FAILURE);
             break;
         default:
             LMLOG(LDBG_1,"Unhandled signal (%d)", sig);
@@ -164,16 +168,16 @@ static void setup_signal_handlers()
 
 void help(void)
 {
-	printf("Usage: meshcom [OPTION]... \n"
-		"--help         help\n"
-		"-n, --num      set device num\n"
-		"-d, --debug    set debug level\n"
+	printf("Usage: IPinterCom [OPTION]... \n"
+		"--help          help\n"
+		"-n, --num       set device num\n"
+		"-d, --debug     set debug level\n"
 		"-s, --server    set the node mode,the value is 0 or 1\n"
-		"-t, --tranport set the transport mode, the value is 'tcp' or 'udp'\n"
-		"-p, --port     set port num\n ");
+		"-t, --tranport  set the transport mode, the value is 'tcp' or 'udp'\n"
+		"-p, --port      set port num\n ");
 	printf("\n");
 	printf("Tip #1 the program use to mesh station device,\n"
-		"usage: meshcom -n 100 -d 3\n");
+		"usage: IPinterCom -n 1 -d 4 -t tcp -p 9990 \n");
 }
 
 /*
@@ -366,7 +370,6 @@ void event_loop()
         }
 
         if (FD_ISSET(Sock,&readfds)){
-            printf("Received master message");
             LMLOG(LINF,"Received master message");
             process_ctl_msg(Sock,AF_INET,sin._addr);
         }
@@ -449,13 +452,6 @@ int main(int argc, char *argv[])
     /* see if we need to daemonize, and if so, do it */
     demonize_start();
 
-    /* create socket master, timer wheel, initialize interfaces */
-    Sock = sock_init();
-    if(Sock <= 0){
-        LMLOG(LERR,"%s: Error sock...", __FUNCTION__);
-        return ERROR;
-    }
-
     if(SERVER == 0){
         ret = button_setup();
         if(ret != SUCCESS){
@@ -470,13 +466,22 @@ int main(int argc, char *argv[])
         goto exit;
     }
 
+    /* create socket master, timer wheel, initialize interfaces */
+    Sock = sock_init();
+    if(Sock <= 0){
+        LMLOG(LERR,"%s: Error sock...", __FUNCTION__);
+        goto exit;
+    }
+
     LMLOG(LINF,"\n\n IPinterCom (%s): 'IPinterCom-d' started... \n\n",IPinterCom_VER);
 
     /* EVENT LOOP */
+    event_loop();
+
 exit:
     /* event_loop returned: bad! */
     LMLOG(LINF, "Exiting...");
     exit_cleanup();
 
-    return(0);
+    return(ERROR);
 }

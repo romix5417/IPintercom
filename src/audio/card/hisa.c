@@ -1,28 +1,42 @@
-#include<audio/aud.h>
+#include <audio/aud.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-static void hisa_card_detect(AudSndCard *card)
+#include "log/lmlog.h"
+
+static void hisa_card_detect(AudSndCard **card)
 {
+    *card = (AudSndCard *)malloc(sizeof(AudSndCard));
+    LMLOG(LINF, "%s: Register snd card success!", __FUNCTION__);
+
     return;
 }
 
 static void hisa_card_init(AudSndCard *card)
 {
+    LMLOG(LINF, "%s: Init snd card success!", __FUNCTION__);
+
     return;
 }
 
 static void hisa_card_create_reader(AudSndCard *card)
 {
+    LMLOG(LINF, "%s: Create snd card Reader success!", __FUNCTION__);
+
     return;
 }
 
 static void hisa_card_create_writer(AudSndCard *card)
 {
+    LMLOG(LINF, "%s: Create snd card Writer success!", __FUNCTION__);
 
     return;
 }
 
 static void hisa_card_unload(AudSndCard *card)
 {
+    LMLOG(LINF, "%s: Unload snd card success!", __FUNCTION__);
+
     return;
 }
 

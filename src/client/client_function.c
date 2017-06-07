@@ -9,7 +9,7 @@
 #include "audio/aud.h"
 
 
-#define PUT_CMD  1
+#define GET_CMD  1
 #define DAIL_CMD 2
 
 typedef struct IPinterCom_control_hdr{
@@ -23,10 +23,12 @@ typedef struct IPinterCom_control_hdr{
 
 int check_file_exist(char *name)
 {
+    LMLOG(LINF, "%s: The %s file is exist.", __FUNCTION__, name);
+
     return GOOD;
 }
 
-int process_put_cmd(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remote_port)
+int process_get_cmd(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remote_port)
 {
     char *name;
     char decode_file_name[32];
@@ -35,6 +37,7 @@ int process_put_cmd(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remot
     int ret = 0;
 
     name = (char *)(((IPinterCom_control_hdr *)packet)->filename);
+    LMLOG(LINF, "%s: The aud file name is %s.", __FUNCTION__, name);
 
     snd_ftp_get(name);
     ret = check_file_exist(name);
@@ -45,8 +48,9 @@ int process_put_cmd(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remot
     }
 
     sprintf(decode_file_name, "raw_%s", name);
+    LMLOG(LINF, "%s: The decode file is %s.", __FUNCTION__, decode_file_name);
 
-    aud_encode_fp = fopen((const char *)name, 'r');
+    aud_encode_fp = fopen(name, 'r');
     if(aud_encode_fp == NULL){
         LMLOG(LERR, "%s:The %s file not exist!", __FUNCTION__, name);
 
@@ -85,18 +89,31 @@ int process_ctl_msg(int sock, int afi, struct in_addr client_ip)
     uint8_t     packet[MAX_IP_PACKET];
     uint16_t    remote_port;
     ip_addr_t   dest_ip;
+    int i;
+
+    memset(packet,0,sizeof(packet));
 
     if ( get_packet_and_socket_inf (sock, afi, packet,&dest_ip,&remote_port) != GOOD ){
         return BAD;
     }
 
     dest_ip.addr.v4.s_addr = client_ip.s_addr;
-    LMLOG(LINF, "Received a IPinterCom control message,the dest_ip:0x%x,remote_port:%d",dest_ip.addr.v4.s_addr,remote_port);
+    LMLOG(LINF, "%s: Received a IPinterCom control message,the dest_ip:0x%x,remote_port:%d",__FUNCTION__, dest_ip.addr.v4.s_addr,remote_port);
+    LMLOG(LINF, "%s: Received msg:\n", __FUNCTION__);
+
+    for(i = 0; i < sizeof(packet); i++){
+        if(i%16==0 && i != 0){
+            printf("\n");
+        }
+        printf("%2x",packet[i]);
+    }
+    printf("\r\n");
+
 
     switch (((IPinterCom_control_hdr *) packet)->cmd) {
-        case PUT_CMD:    //Got Cmd Setting Reply
+        case GET_CMD:    //Got Cmd Setting Reply
             LMLOG(LINF, "Received a IPinterCom Cmd message");
-            if (process_put_cmd(sock,packet,dest_ip,remote_port) != GOOD){
+            if (process_get_cmd(sock,packet,dest_ip,remote_port) != GOOD){
                 return (BAD);
             }
             break;

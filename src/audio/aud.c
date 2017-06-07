@@ -58,13 +58,20 @@ int snd_play_start(FILE *aud_raw_fp )
 
 int card_detect(SndCardDesc *desc)
 {
-    if(desc->detect != NULL)
-        (desc->detect)(AudCard);
+    if(desc->detect != NULL){
+        LMLOG(LINF, "%s: Runing snd card detect!", __FUNCTION__);
+        (desc->detect)(&AudCard);
+    }
 
-    if(AudCard != NULL)
+    if(AudCard != NULL){
+        LMLOG(LINF, "%s: Detect snd card success!", __FUNCTION__);
+
         return GOOD;
-    else
+    }else{
+        LMLOG(LINF, "%s: Detect snd card failed!", __FUNCTION__);
+
         return ERROR;
+    }
 }
 
 void snd_card_register(SndCardDesc *desc)
