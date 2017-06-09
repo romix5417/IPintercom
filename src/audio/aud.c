@@ -29,20 +29,59 @@ void snd_record_stop(void)
     return;
 }
 
+long get_time(char *cur_time)
+{
+	long sec = 0;
+	time_t now ;
+	struct tm *tm_now ;
+	sec = time(&now) ;
+	tm_now = localtime(&now) ;
+	//printf("now datetime: %d-%d-%d %d:%d:%d\n",
+	//		tm_now->tm_year+1900, tm_now->tm_mon+1, tm_now->tm_mday, tm_now->tm_hour, tm_now->tm_min, tm_now->tm_sec) ;
+
+	sprintf(cur_time, "%d-%d-%d_%d_%d_%d",
+						tm_now->tm_year+1900,
+						tm_now->tm_mon+1,
+						tm_now->tm_mday,
+						tm_now->tm_hour,
+						tm_now->tm_min,
+						tm_now->tm_sec);
+
+	return sec;
+}
+
 void snd_record_start(void)
 {
     AudSndCard *card;
     Reader *reader;
+    char filename[32] = {0};
+    char cur_time[16]={0};
 
     card = recorder->sndCard;
     reader = card->reader;
 
+    if(NULL == recorder->aud_raw_fp){
+        get_time(cur_time);
+        sprintf(filename,"%02d%s", DEV_NUM,cur_time);
+        LMLOG(LINF, "%s: The auido filename is %s.", __FUNCTION__, filename);
+        recorder->aud_raw_fp = fopen(filename,"w+");
+    }
+
     reader->snd_read(card, recorder->aud_raw_fp,recorder->sample);
 }
 
-int recorder_setup(void)
+void recorder_setup(void)
 {
-    return GOOD;
+    if(recorder == NULL){
+        recorder = (Recorder *)malloc(sizeof(Recorder));
+        recorder->sndCard = AudCard;
+        recorder->thread_id = NULL;
+        recorder->aud_raw_fp = NULL;
+        recorder->aud_encode_fp = NULL;
+        sample = AUDIO_SAMPLE_RATE_8000;
+    }
+
+    return;
 }
 
 int snd_play_start(FILE *aud_raw_fp )

@@ -45,7 +45,6 @@ typedef struct SndCardDesc{
 void snd_record_start(void);
 void snd_record_stop(void);
 void snd_start_play(FILE* aud_raw_fp);
-int recorder_setup(void);
-
+void recorder_setup(void);
 
 #endif

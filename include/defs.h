@@ -15,13 +15,15 @@
 #define TRUE                1
 #define FALSE               0
 
-#define MAX_IP_PACKET 1500 
+#define MAX_IP_PACKET  160 
 
 #define RUNNING  0
 #define STOPPING -1
 
 #define DOWN      1
-#define RELEASE   0
+#define UP        0
+#define RELEASE   2
+
 
 
 #endif

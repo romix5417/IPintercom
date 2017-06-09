@@ -400,8 +400,7 @@ int get_packet_and_socket_inf (
         unsigned char data4[CMSG_SPACE(sizeof(struct in_pktinfo))]; /* Space for IPv4 pktinfo */
         unsigned char data6[CMSG_SPACE(sizeof(struct in6_pktinfo))]; /* Space for IPv6 pktinfo */
     };
-    
-    
+
     struct sockaddr_in  s4;
     struct sockaddr_in6 s6;
     struct msghdr       msg;
@@ -445,7 +444,7 @@ int get_packet_and_socket_inf (
 
         *remote_port = ntohs(s4.sin_port);
     }else {
-	LMLOG(LINF, "read_packet: recvmsg IPv6 addr");
+	    LMLOG(LINF, "read_packet: recvmsg IPv6 addr");
         for (cmsgptr = CMSG_FIRSTHDR(&msg); cmsgptr != NULL; cmsgptr = CMSG_NXTHDR(&msg, cmsgptr)) {
             if (cmsgptr->cmsg_level == IPPROTO_IPV6 && cmsgptr->cmsg_type == IPV6_PKTINFO) {
                 remote_ip->afi = AF_INET6;

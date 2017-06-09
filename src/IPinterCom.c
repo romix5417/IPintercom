@@ -76,7 +76,6 @@ static void demonize_start()
     }
 }
 
-
 /* Check if IPinterCom is already running: /var/run/IPinterCom.pid */
 int pid_file_check_not_exist()
 {
@@ -161,6 +160,7 @@ static void setup_signal_handlers()
     signal(SIGTERM, signal_handler);
     signal(SIGINT,  signal_handler);
     signal(SIGQUIT, signal_handler);
+
 #ifdef TCP_MODE
     signal(SIGPIPE, SIG_IGN);
 #endif
@@ -337,7 +337,7 @@ void event_loop()
 			process_ctl_msg(clientfd,AF_INET,cliaddr.sin_addr);
 			FD_CLR(clientfd, &readfds);
 			clientfd = 0;
-			max_fd = Sock;
+			max_fd = Sock > ButtonFd ? Sock:ButtonFd;
 		}
 
         if (FD_ISSET(ButtonFd, &readfds)){
@@ -408,6 +408,9 @@ static void initial_setup()
     srandom(iseed);
     setup_signal_handlers();
 }
+
+int sec=0;
+int key=0;
 
 int main(int argc, char *argv[])
 {
