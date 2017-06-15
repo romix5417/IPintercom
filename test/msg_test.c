@@ -64,11 +64,13 @@ int main(int argc, char** argv) {
     int iter=0;
     char buf[80];
     struct sockaddr_in address;//处理网络通信的地址
-    char aud_name[16]={"0220170607150830"};
+    //char aud_name[16]={"0220170607150830"};
+    char aud_name[32] = {0};
     msg_header *msg;
 
+    memcpy(aud_name,argv[1],16);
     msg = (msg_header *)test_audio_cmd_msg;
-    memcpy(msg->name,aud_name,sizeof(aud_name));
+    memcpy(msg->name,aud_name,16);
 
     bzero(&address,sizeof(address));
     address.sin_family=AF_INET;
@@ -119,11 +121,12 @@ int main(int argc, char** argv) {
     char buf[80];
     struct sockaddr_in address,dst_address;//处理网络通信的地址
 
-    char aud_name[16]={"0220170607150830"};
+    char aud_name[32]= {0};//{"0119700101102507"};
     msg_header *msg;
 
+    memcpy(aud_name, argv[1], 16);
     msg = (msg_header *)test_audio_cmd_msg;
-    memcpy(msg->name, aud_name, sizeof(aud_name));
+    memcpy(msg->name, aud_name, 16);
 
     bzero(&address,sizeof(address));
     address.sin_family=AF_INET;
@@ -132,11 +135,11 @@ int main(int argc, char** argv) {
 
     //创建一个 UDP socket
     socket_descriptor=socket(AF_INET,SOCK_STREAM,0);//IPV4  SOCK_DGRAM 数据报套接字（UDP协议）
-    if(bind(socket_descriptor,(struct sockaddr *)&address,sizeof(struct sockaddr))==-1){
+    /*if(bind(socket_descriptor,(struct sockaddr *)&address,sizeof(struct sockaddr))==-1){
         printf("Bind error...%d\r\n",errno);
         close(socket_descriptor);
         exit(1);
-    }
+    }*/
 
     bzero(&dst_address,sizeof(dst_address));
     dst_address.sin_family=AF_INET;

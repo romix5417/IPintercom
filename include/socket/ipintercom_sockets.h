@@ -18,6 +18,6 @@ typedef struct {
         struct in_addr      v4;
         struct in6_addr     v6;
     } addr;
-} ip_addr_t;
+}ip_addr_t;
 
 #endif

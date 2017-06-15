@@ -5,6 +5,7 @@ DIR_AUD = ${DIR_SRC}/audio
 DIR_CARD = ${DIR_AUD}/card
 DIR_CLI = ${DIR_SRC}/client
 DIR_BUTTON = ${DIR_CLI}/button
+DIR_FIFO = ${DIR_SRC}/fifo
 DIR_TRS = ${DIR_SRC}/transport
 DIR_LOG = ${DIR_LIB}/log
 DIR_SOCKET = ${DIR_LIB}/socket
@@ -13,10 +14,10 @@ DIR_TEST = ./test
 INSTALL_PROGRAM = cp
 
 
-SRC = $(wildcard ${DIR_SRC}/*.c ${DIR_LIB}/*.c ${DIR_AUD}/*.c ${DIR_CLI}/*.c ${DIR_TRS}/*.c ${DIR_LOG}/*.c ${DIR_SOCKET}/*.c ${DIR_BUTTON}/*.c ${DIR_CARD}/*.c)
+SRC = $(wildcard ${DIR_SRC}/*.c ${DIR_LIB}/*.c ${DIR_AUD}/*.c ${DIR_CLI}/*.c ${DIR_TRS}/*.c ${DIR_LOG}/*.c ${DIR_SOCKET}/*.c ${DIR_BUTTON}/*.c ${DIR_CARD}/*.c ${DIR_FIFO}/*.c)
 OBJ = $(patsubst %.c,${DIR_OBJ}/%.o,$(notdir ${SRC}))
 
-TARGET = IPinterCom
+TARGET = libIPinterCom.so
 
 BIN_TARGET = ${TARGET}
 
@@ -32,10 +33,10 @@ ifndef DESTDIR
 	DESTDIR = .
 endif
 
-CFLAGS += -g -Wall -std=c99 -I${DIR_INC}
+CFLAGS += -g -Wall -I${DIR_INC}
 
 ${BIN_TARGET}:${OBJ}
-	$(CC) $(OBJ) $(LDFLAGS) -o $@
+	$(CC) -shared -fPIC $(OBJ) $(LDFLAGS) $(CFLAGS) -o $@
 
 #${DIR_OBJ}/%.o:${DIR_SRC}/%.c ${DIR_LIB}/%.c ${DIR_AUD}/%.c ${DIR_CLI}/%.c ${DIR_TRS}/%.c ${DIR_LOG}/%.c ${DIR_SOCKET}/%.c ${DIR_SOCKET}/%.c ${DIR_BUTTON}/%.c
 #	$(CC) $(CFLAGS) $(LDFLAGS) -c  $< -o $@
@@ -68,6 +69,9 @@ ${DIR_OBJ}/%.o:${DIR_BUTTON}/%.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
 
 ${DIR_OBJ}/%.o:${DIR_CARD}/%.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
+
+${DIR_OBJ}/%.o:${DIR_FIFO}/%.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
 
 all:${BIN_TARGET}

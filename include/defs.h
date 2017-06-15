@@ -8,7 +8,7 @@
 #define ERR_SOCKET          -2
 
 
-#define ERROR -1 
+#define ERROR -1
 
 #define  RESERVED  0
 
@@ -17,13 +17,17 @@
 
 #define MAX_IP_PACKET  160 
 
-#define RUNNING  0
-#define STOPPING -1
+#define RUNNING   1
+#define STOPPING  0
 
 #define DOWN      1
 #define UP        0
 #define RELEASE   2
 
+typedef char bool;
+
+#define false 0
+#define true  1
 
 
 #endif

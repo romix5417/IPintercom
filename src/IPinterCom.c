@@ -23,6 +23,7 @@
 #include "log/lmlog.h"
 #include "client/button.h"
 #include "client/client_function.h"
+#include "IPinterCom.h"
 
 #define IPinterCom_VER "v0.1"
 
@@ -33,7 +34,7 @@
 
 #define IPINTERCOM_PORT 9990
 
-int debug_level = 1;
+int debug_level = 5;
 int daemonize = 0;
 
 int Sock;
@@ -44,7 +45,8 @@ int ButtonFd;
 int PORT = DEFAULT_PORT;
 int SERVER = 0;
 char TRANSPORT_MODE[8] = "tcp";
-int DEV_NUM = 0;
+int DEV_NUM = 1;
+int HOST_NUM = 0;
 
 pid_t pid   = 0;
 pid_t sid   = 0;
@@ -94,6 +96,7 @@ int pid_file_check_not_exist()
 
 void exit_cleanup()
 {
+    system("rm /var/run/IPinterCom.pid");
     close(Sock);
 }
 
@@ -336,6 +339,7 @@ void event_loop()
 		if (FD_ISSET(clientfd,&readfds)){
 			process_ctl_msg(clientfd,AF_INET,cliaddr.sin_addr);
 			FD_CLR(clientfd, &readfds);
+            close(clientfd);
 			clientfd = 0;
 			max_fd = Sock > ButtonFd ? Sock:ButtonFd;
 		}
@@ -412,8 +416,14 @@ static void initial_setup()
 int sec=0;
 int key=0;
 
+#if 0
 int main(int argc, char *argv[])
+#endif 
+void IPinterCom(void)
 {
+    int argc = 1;
+    char *argv[]={"IPinterCom"};
+
 	int morehelp=0;
     int ret;
 

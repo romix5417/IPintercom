@@ -497,9 +497,6 @@ ip_sock_afi_to_size(uint16_t afi)
     }
 }
 
-
-
-
 uint8_t
 ip_addr_get_size(ip_addr_t *ipaddr)
 {
@@ -524,3 +521,37 @@ ip_addr_copy_to(void *dst, ip_addr_t *src)
     memcpy(dst, ip_addr_get_addr(src), ip_addr_get_size(src));
 }
 
+int send_cmd_packet(uint8_t *packet, int packet_len, ip_addr_t dest_ip,int remote_port)
+{
+    int socket_fd;
+    struct sockaddr_in dst_address;
+    int ret = 0;
+
+    // Create a TCP socket
+    socket_fd=socket(AF_INET,SOCK_STREAM,0);//IPV4  SOCK_STREAM (TCP protocol)
+
+    bzero(&dst_address,sizeof(dst_address));
+    dst_address.sin_family=dest_ip.afi;
+    dst_address.sin_addr.s_addr = dest_ip.addr.v4.s_addr;
+    dst_address.sin_port=htons(remote_port);
+
+    ret = connect(socket_fd, (struct sockaddr *)&dst_address, sizeof(struct sockaddr));
+    if(ret != 0){
+        LMLOG(LERR, "%s: Connection failed,the Error is %d.", __FUNCTION__ , ret);
+        close(socket_fd);
+
+        return BAD;
+    }
+
+    ret = send(socket_fd, packet, packet_len, 0);
+    if(ret != 0){
+        LMLOG(LERR, "%s: Send failed, the Error is %d.", __FUNCTION__ , ret);
+        close(socket_fd);
+
+        return BAD;
+    }
+
+    close(socket_fd);
+
+    return (EXIT_SUCCESS);
+}

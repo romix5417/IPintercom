@@ -70,4 +70,6 @@ ip_addr_get_size(ip_addr_t *ipaddr);
 void
 ip_addr_copy_to(void *dst, ip_addr_t *src);
 
+int send_cmd_packet(uint8_t *packet, int packet_len, ip_addr_t dest_ip,int remote_port);
+
 #endif /* SOCKETS_UTIL_H_ */

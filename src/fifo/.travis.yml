@@ -1,0 +1,27 @@
+language : c
+compiler :
+  - gcc
+  - clang
+before_install :
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq libcunit1-dev
+  - sudo pip install cpp-coveralls
+script :
+  - CFLAGS=--coverage LDFLAGS=--coverage make
+  - CFLAGS=--coverage LDFLAGS=--coverage make --quiet test
+after_success:
+  - coveralls --exclude test --gcov-options '\-lp'
+
+env:
+  global:
+   - secure: "EatBMJ4xgs3W1oxXEAVGxiUAIvRMPnLIH7n9nvL97LxEuX8AzoX2iNd3FBCBqx5qVOUK6+p8ZObFNR301Hj0NWeVpougflh0sA4FwauRcFKdJ3KlW9IK4FdonwRQvb7g+pLEUsw6Efy5Mf00dxvNH8kA9yu9s1EkDdQQ7R7NjE8qa7PV3k2vSvpr1AD0IS4fFkcrOPz+xrhTFdB/feEOU3pnc07onKi3aOMcNqAE0Sqs3CutV6wr9vGcKw0NFc+7OreAKbYSOxxplzr+d36kj6hhOR0L6z39n7cmFJKUdvKeLoOp5szZRy7LML8KnMVN4NHYD7usmdDijBYpR1odxjilKMwWWGXsZbK5VVsEd7ZKj0QY1MWcx1SM7kv5IvbZ5+EmtamtcJZeawijLOguBSW2UX9b796PVOO6grd3F6qKXxEVgdXEsjQWt7hHmEoBE2y6VdhenEo3Yz+0Az7yXGIDIrYfto+Ngz2vUp6WwEbJqIVQ/ZPbO6Ask7JSYnJ2U33VkO+kmLuHvJa04DKAXYSQPS8zU/FU/cF1PcWdcLchjtwzRfZIMeqdpMbFrz89Fa5jBBpsH1rQu5i/ts7m/5h0HJnfsRjKCg8xIoDa5GzwMS3Bg76nODgJzxIAx57VadHqhzUmK11UYqqj0pu6oDlyyKUNKhRVwrM6Qcvehxw="
+
+addons:
+  coverity_scan:
+    project:
+      name: "jjgreen/fifo"
+      description: "Build submitted via Travis CI"
+    notification_email: "j.j.green@gmx.co.uk"
+    build_command_prepend: "make clean"
+    build_command:   "make"
+    branch_pattern: "coverity_scan"

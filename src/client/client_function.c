@@ -10,22 +10,16 @@
 #include "transport/transport_function.h"
 #include "defs.h"
 #include "audio/aud.h"
+#include "message/message.h"
 
 
-#define GET_CMD  1
-#define DAIL_CMD 2
+#define FILENAME_LEN 16
 
-typedef struct IPinterCom_control_hdr{
-    uint8_t src;
-    uint8_t dest;
-    uint8_t cmd;
-    uint8_t Reserve;
-    int  filesize;
-    char filename[16];
-}IPinterCom_control_hdr;
+extern Player *player;
 
 int check_file_exist(char *name)
 {
+    usleep(200000);
     LMLOG(LINF, "%s: The %s file is exist.", __FUNCTION__, name);
 
     return GOOD;
@@ -33,14 +27,15 @@ int check_file_exist(char *name)
 
 int process_get_cmd(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remote_port)
 {
-    char name[16];
+    char name[32]={0};
     FILE *aud_encode_fp, *aud_raw_fp;
     int status = 0;
     int ret = 0;
     char buf[32] = {0};
     char decode_file_name[32]={0};//{"raw_"};
+    VoiceMessage *vmsg = NULL;
 
-    memcpy(name, (char *)(((IPinterCom_control_hdr *)packet)->filename), 16);
+    memcpy(name, (char *)(((IPinterCom_control_hdr *)packet)->filename), FILENAME_LEN);
     LMLOG(LINF, "%s: The aud file name is %s.", __FUNCTION__, name);
 
     snd_ftp_get(name);
@@ -51,45 +46,26 @@ int process_get_cmd(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remot
         return ret;
     }
 
-    sprintf(decode_file_name, "raw_%s", name);
-    //memcpy(&(decode_file_name[4]), name, 16);
-    LMLOG(LINF, "%s: The decode file is %s, the encode file is %s.", __FUNCTION__, decode_file_name, name);
+    vmsg = (VoiceMessage *)malloc(sizeof(VoiceMessage));
+    LMLOG(LINF, "%s: The VoiceMessage alloc success.", __FUNCTION__);
 
-    aud_encode_fp = fopen(name, "r+");
-    if(aud_encode_fp == NULL){
-        LMLOG(LERR, "%s:The %s file not exist!", __FUNCTION__, name);
+    player_setup();
 
-        return BAD;
-    }
-
-    LMLOG(LINF, "%s: Open the %s decode file.", __FUNCTION__, decode_file_name);
-    LMLOG(LINF, "%s: Test the program running", __FUNCTION__);
-
-    sprintf(buf, "touch %s", decode_file_name);
-    LMLOG(LINF, "%s: excute the %s cmd.", __FUNCTION__, buf);
-    system(buf);
-    sleep(1);
-
-    aud_raw_fp = fopen(decode_file_name, "w+");
-    if(aud_raw_fp == NULL){
-        LMLOG(LERR, "%s:The %s file open faied!", __FUNCTION__, name);
-
-        return BAD;
-    }
-
-    snd_decode_start(aud_encode_fp, aud_raw_fp);
-
-    fclose(aud_encode_fp);
+    memcpy(vmsg->filename, name,FILENAME_LEN);
+    LMLOG(LINF, "%s: The vmsg filename %s, vmsg address:%x, vmsg filename address:%x.", __FUNCTION__, vmsg->filename, vmsg, vmsg->filename);
+    fifo_enqueue(player->msg_fifo,&vmsg);
 
     //judgement the linphone calls is running or not
     status = calls_status();
     if(status == RUNNING){
-        fclose(aud_raw_fp);
-        return BAD;
+        //terminal_calls();
+        return status;
     }
 
-    snd_start_play(aud_raw_fp);
-    fclose(aud_raw_fp);
+    if(player->play_flag != RUNNING){
+        player->play_flag = RUNNING;
+        snd_play_start(player->sndCard);
+    }
 
     return GOOD;
 }
