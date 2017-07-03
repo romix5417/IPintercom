@@ -22,7 +22,7 @@
 
 #include "defs.h"
 
-extern int debug_level; 
+extern int debug_level;
 
 
 /* If these set of defines is modified, check the function is_loggable() */

@@ -18,6 +18,7 @@ int check_file_exist(char *name);
 
 #define PUT_CMD  0
 #define GET_CMD  1
-#define DAIL_CMD 2
+#define DIAL_CMD 2
+#define STOP_CMD 3
 
 #endif

@@ -29,6 +29,8 @@ endef
 
 define Package/IPinterCom/install
 	$(CP) $(PKG_INSTALL_DIR)/*.so* $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/tools/global_cfg $(1)/usr/bin
+	#$(CP) $(PKG_INSTALL_DIR)/script/config $(1)/etc/
 endef
 
 all:

@@ -18,7 +18,7 @@ INSTALL_PROGRAM = cp
 SRC = $(wildcard ${DIR_SRC}/*.c ${DIR_LIB}/*.c ${DIR_AUD}/*.c ${DIR_CLI}/*.c ${DIR_TRS}/*.c ${DIR_LOG}/*.c ${DIR_SOCKET}/*.c ${DIR_BUTTON}/*.c ${DIR_CARD}/*.c ${DIR_FIFO}/*.c ${DIR_CFG}/*.c)
 OBJ = $(patsubst %.c,${DIR_OBJ}/%.o,$(notdir ${SRC}))
 
-TARGET = libIPinterCom.so
+TARGET = IPinterCom
 
 BIN_TARGET = ${TARGET}
 
@@ -37,7 +37,7 @@ endif
 CFLAGS += -g -Wall -I${DIR_INC}
 
 ${BIN_TARGET}:${OBJ}
-	$(CC) -shared -fPIC $(OBJ) $(LDFLAGS) $(CFLAGS) -o $@
+	$(CC) $(OBJ) $(LDFLAGS) $(CFLAGS) -o $@
 
 #${DIR_OBJ}/%.o:${DIR_SRC}/%.c ${DIR_LIB}/%.c ${DIR_AUD}/%.c ${DIR_CLI}/%.c ${DIR_TRS}/%.c ${DIR_LOG}/%.c ${DIR_SOCKET}/%.c ${DIR_SOCKET}/%.c ${DIR_BUTTON}/%.c
 #	$(CC) $(CFLAGS) $(LDFLAGS) -c  $< -o $@
@@ -89,4 +89,4 @@ install:
 	@echo "Installing to $(DESTDIR)$(INSTALL_PREFIX)/bin"
 	@$(INSTALL_PROGRAM) -rf $(BIN_TARGET) $(DESTDIR)$(INSTALL_PREFIX)/bin
 clean:
-	rm -rf libIPinterCom.so ${DIR_OBJ}/*.o 
+	rm -rf IPinterCom ${DIR_OBJ}/*.o 

@@ -544,7 +544,7 @@ int send_cmd_packet(uint8_t *packet, int packet_len, ip_addr_t dest_ip,int remot
     }
 
     ret = send(socket_fd, packet, packet_len, 0);
-    if(ret != 0){
+    if(ret != packet_len){
         LMLOG(LERR, "%s: Send failed, the Error is %d.", __FUNCTION__ , ret);
         close(socket_fd);
 

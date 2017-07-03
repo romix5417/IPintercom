@@ -42,7 +42,7 @@ typedef struct Writer{
 typedef struct Recorder{
     struct AudSndCard *sndCard;
     pthread_t  thread_id;
-    char       aud_encode_file[32];
+    char       record_aud_file[32];
     FILE       *aud_raw_fp;
     int        sample;
     Encoder    *encoder;
@@ -90,5 +90,6 @@ void snd_play_start(AudSndCard *card);
 void recorder_setup(void);
 void player_destroy(void);
 void recorder_destroy(void);
+int aud_dev_setup();
 
 #endif

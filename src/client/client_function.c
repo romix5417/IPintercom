@@ -7,19 +7,23 @@
 #include "socket/sockets-util.h"
 #include "log/lmlog.h"
 #include "client/client_function.h"
+#include "client/button.h"
 #include "transport/transport_function.h"
 #include "defs.h"
 #include "audio/aud.h"
 #include "message/message.h"
+#include "cfg/cfg.h"
 
 
 #define FILENAME_LEN 16
 
+extern CFG_OPT global_cfg;
+
+extern Recorder *recorder;
 extern Player *player;
 
 int check_file_exist(char *name)
 {
-    usleep(200000);
     LMLOG(LINF, "%s: The %s file is exist.", __FUNCTION__, name);
 
     return GOOD;
@@ -57,8 +61,8 @@ int process_get_cmd(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remot
 
     //judgement the linphone calls is running or not
     status = calls_status();
-    if(status == RUNNING){
-        //terminal_calls();
+    if(status != GOOD){
+        LMLOG(LWRN, "%s: The linphone is Calling or Ringning, the status is %d",  __FUNCTION__, status);
         return status;
     }
 
@@ -68,6 +72,32 @@ int process_get_cmd(int sock, uint8_t *packet, ip_addr_t dest_ip, uint16_t remot
     }
 
     return GOOD;
+}
+
+void linphone_dail(void)
+{
+    int buf[64]={0};
+
+    if(recorder != NULL){
+        if(recorder->state == RUNNING){
+            LMLOG(LWRN, "%s: The recorder is running.", __FUNCTION__);
+            return;
+        }
+    }
+
+    if(player != NULL){
+        if(player->play_flag == RUNNING){
+            LMLOG(LWRN, "%s: The player is running.", __FUNCTION__);
+            return;
+        }
+    }
+
+    sprintf(buf, "linphonecsh dial sip:root@%s &", global_cfg.host_ip);
+    LMLOG(LINF, "%s: The dial cmd is '%s'.", __FUNCTION__, buf);
+    system(buf);
+    system("echo 'dial run' > log");
+
+    return;
 }
 
 /*
@@ -100,14 +130,15 @@ int process_ctl_msg(int sock, int afi, struct in_addr client_ip)
     }
     printf("\r\n");
 
-    switch (((IPinterCom_control_hdr *) packet)->cmd) {
+    switch(((IPinterCom_control_hdr *)packet)->cmd){
         case GET_CMD:    //Got Cmd Setting Reply
             LMLOG(LINF, "Received a IPinterCom Cmd message");
             if (process_get_cmd(sock,packet,dest_ip,remote_port) != GOOD){
                 return (BAD);
             }
             break;
-        case DAIL_CMD:
+        case DIAL_CMD:
+            linphone_dail();
             break;
         default:
             LMLOG(LINF, "Unidentified type control message received");

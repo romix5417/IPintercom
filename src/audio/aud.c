@@ -7,6 +7,7 @@
 #include "audio/aud.h"
 #include "message/message.h"
 #include "audio/decode.h"
+#include "cfg/cfg.h"
 
 #define  __HISA_ENABLE__
 
@@ -20,7 +21,7 @@ Player *player = NULL;
 
 extern bool Record_start;
 
-extern int DEV_NUM;
+extern CFG_OPT global_cfg;
 
 #ifdef __HISA_ENABLE__
 extern SndCardDesc InterCom_hisa_card_desc;
@@ -36,7 +37,6 @@ void snd_play_start(AudSndCard *card)
 {
     VoiceMessage *vmsg = NULL;
     char buf[32];
-    int fd = 0;
 
     LMLOG(LINF, "%s: Excute sound play start.", __FUNCTION__);
 
@@ -109,20 +109,30 @@ void snd_record_start(void)
     char cur_time[16]={0};
     char buf[64]={0};
 
-    card = recorder->sndCard;
+    if(recorder != NULL){
+        card = recorder->sndCard;
+    }else{
+        LMLOG(LERR, "%s: The recorder is NULL.", __FUNCTION__);
+        return;
+    }
+
     reader = card->reader;
-    recorder->state = RUNNING;
 
     if(NULL == recorder->aud_raw_fp){
         get_time(cur_time);
-        sprintf(recorder->aud_encode_file,"%02d%s", DEV_NUM,cur_time);
-        LMLOG(LINF, "%s: The auido filename is %s.", __FUNCTION__, recorder->aud_encode_file);
-        sprintf(buf, "/mnt/mmc1/%s",recorder->aud_encode_file);
+        sprintf(recorder->record_aud_file,"%02d%s", global_cfg.dev_num, cur_time);
+        LMLOG(LINF, "%s: The auido filename is %s.", __FUNCTION__, recorder->record_aud_file);
+        sprintf(buf, "/mnt/mmc1/%s",recorder->record_aud_file);
         recorder->aud_raw_fp = fopen(buf,"w+");
     }
 
     // init encoder
-    recorder_encoder_init(&recorder);
+    if(recorder != NULL && recorder->encoder != NULL){
+        recorder_encoder_init(&recorder);
+    }else{
+        LMLOG(LERR, "%s: The recorder is NULL.", __FUNCTION__);
+        return;
+    }
     // prepare for read hisi aud data
     (card->desc->read_preprocess)();
 
@@ -134,9 +144,14 @@ void snd_record_start(void)
 
     (card->desc->read_postprocess)();
 
-    recorder_encoder_destroy(&recorder);
+    if(recorder != NULL){
+        recorder_encoder_destroy(&recorder);
+        recorder->state = STOPPING;
+    }else{
+        LMLOG(LERR, "%s: The recorder is NULL.", __FUNCTION__);
+        return;
+    }
 
-    recorder->state = STOPPING;
     return;
 }
 
@@ -146,10 +161,11 @@ void recorder_setup(void)
         recorder = (Recorder *)malloc(sizeof(Recorder));
         recorder->sndCard = AudCard;
         recorder->aud_raw_fp = NULL;
-        memset(recorder->aud_encode_file, 0, sizeof(recorder->aud_encode_file));
+        memset(recorder->record_aud_file, 0, sizeof(recorder->record_aud_file));
         recorder->sample = AUDIO_SAMPLE_RATE_8000;
         recorder->encoder = (Encoder *)malloc(sizeof(Encoder));
         LMLOG(LINF, "%s: The recorder encoder is %x.", __FUNCTION__, recorder->encoder);
+        recorder->state = RUNNING;
     }
 
     return;

@@ -23,7 +23,10 @@
 #include "log/lmlog.h"
 #include "client/button.h"
 #include "client/client_function.h"
+#include "cfg/cfg.h"
+#include "audio/aud.h"
 #include "IPinterCom.h"
+#include "defs.h"
 
 #define IPinterCom_VER "v0.1"
 
@@ -32,21 +35,32 @@
 #define SUCCESS  0
 #define ERROR   -1
 
-#define IPINTERCOM_PORT 9990
+#define DEFAULT_HOST_IP "192.168.1.1"
+#define DEFAULT_HOST_NUM 0
+#define DEFAULT_DEV_NUM 2
+#define DEFAULT_DEBUG_LEVEL 5
+#define DEFAULT_DEST_PORT 4700 + DEFAULT_DEV_NUM
+#define DEFAULT__LOCAL_PORT 4800 + DEFAULT_DEV_NUM
+#define DEFAULT_FTP_PORT 4900 + DEFAULT_DEV_NUM
+
+extern CFG_OPT global_cfg = {
+    .host_ip = DEFAULT_HOST_IP,
+    .host_num = DEFAULT_HOST_NUM,
+    .dev_num = DEFAULT_DEV_NUM,
+    .debug_level = DEFAULT_DEBUG_LEVEL,
+    .dest_port = DEFAULT_DEST_PORT,
+    .local_port = DEFAULT__LOCAL_PORT,
+    .ftp_port = DEFAULT_FTP_PORT,
+};
 
 int debug_level = 5;
+
 int daemonize = 0;
 
 int Sock;
-int ButtonFd;
 
-#define DEFAULT_PORT IPINTERCOM_PORT
 
-int PORT = DEFAULT_PORT;
 int SERVER = 0;
-char TRANSPORT_MODE[8] = "tcp";
-int DEV_NUM = 1;
-int HOST_NUM = 0;
 
 pid_t pid   = 0;
 pid_t sid   = 0;
@@ -54,6 +68,8 @@ pid_t sid   = 0;
 
 extern int capset(cap_user_header_t header, cap_user_data_t data);
 extern int capget(cap_user_header_t header, const cap_user_data_t data);
+
+void exit_cleanup();
 
 static void demonize_start()
 {
@@ -230,7 +246,7 @@ int sock_init()
 
     bzero(&servaddr,sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(IPINTERCOM_PORT);
+    servaddr.sin_port = htons(global_cfg.local_port);
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 
@@ -262,7 +278,7 @@ int sock_init()
 
     bzero(&servaddr,sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(IPINTERCOM_PORT);
+    servaddr.sin_port = htons(global_cfg.local_port);
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if(bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
@@ -310,13 +326,12 @@ void event_loop()
     int    retval;
     socklen_t clilen;
     struct sockaddr_in cliaddr;
-    int event;
 
     /*
      *  calculate the max_fd for select.
      */
 
-	max_fd = Sock > ButtonFd ? Sock:ButtonFd;
+    max_fd = Sock;
 
 	for (;;) {
 		FD_ZERO(&readfds);
@@ -341,12 +356,7 @@ void event_loop()
 			FD_CLR(clientfd, &readfds);
             close(clientfd);
 			clientfd = 0;
-			max_fd = Sock > ButtonFd ? Sock:ButtonFd;
 		}
-
-        if (FD_ISSET(ButtonFd, &readfds)){
-            process_button_event(event);
-        }
     }
 }
 #else
@@ -360,8 +370,7 @@ void event_loop()
     /*
      *  calculate the max_fd for select.
      */
-
-    max_fd = Sock > ButtonFd ? Sock:ButtonFd;
+    max_fd = Sock;
 
     for (;;) {
         FD_ZERO(&readfds);
@@ -376,10 +385,6 @@ void event_loop()
         if (FD_ISSET(Sock,&readfds)){
             LMLOG(LINF,"Received master message");
             process_ctl_msg(Sock,AF_INET,sin._addr);
-        }
-
-        if (FD_ISSET(ButtonFd, &readfds)){
-            process_button_event();
         }
     }
 }
@@ -402,10 +407,10 @@ static void initial_setup()
         exit(EXIT_SUCCESS);
     }
 
-    if(pid_file_check_not_exist() == BAD){
+    /*if(pid_file_check_not_exist() == BAD){
         exit(EXIT_SUCCESS);
     }
-    pid_file_create();
+    pid_file_create();*/
 
     /* Initialize the random number generator  */
     iseed = (unsigned int) time(NULL);
@@ -413,19 +418,23 @@ static void initial_setup()
     setup_signal_handlers();
 }
 
-int sec=0;
-int key=0;
+void debug_setup()
+{
+    debug_level = global_cfg.debug_level;
+}
 
 #if 0
 int main(int argc, char *argv[])
-#endif 
+#endif
+#if 1
 void IPinterCom(void)
+#endif
 {
+#if 0
     int argc = 1;
     char *argv[]={"IPinterCom"};
 
 	int morehelp=0;
-    int ret;
 
 	while (1){
 		int c;
@@ -459,6 +468,17 @@ void IPinterCom(void)
 
         return SUCCESS;
     }
+
+#endif
+
+    int ret;
+
+    ret = cfg_read("/etc/config/IPinterCom.cfg", &global_cfg);
+    if(ret < 0){
+        LMLOG(LWRN, "%s: Not have the cfg file.", __FUNCTION__);
+    }
+
+    debug_setup();
 
 	initial_setup();
 
@@ -496,5 +516,5 @@ exit:
     LMLOG(LINF, "Exiting...");
     exit_cleanup();
 
-    return(ERROR);
+    return;
 }
